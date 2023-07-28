@@ -125,127 +125,7 @@ def rle_segment(seq):
         else:
             index.append([i])
     return index
-
-
-def geolife_labeled_unify(path="../data/geolife/Data"):
-    subfolders = os.listdir(path)
-    subfolders.remove(".DS_Store")
-    dfs = []
-    mode_names = ['walk', 'bike', 'bus', 'car', 'subway', 'train', 'airplane', 'boat', 'run', 'motorcycle', 'taxi']
-    mode_ids = {s: i + 1 for i, s in enumerate(mode_names)}
-    traj_ID_list = []
-    obj_ID_list = []
-    timestamp_list = []
-    location_list = []
-    type_list = []
-    missing_data_list = []
-
-    for i, sf in enumerate(subfolders):
-        print('[%d/%d] processing user %s' % (i + 1, len(subfolders), sf))
-        user_folder = os.path.join(path, sf)
-        plt_files = glob.glob(os.path.join(user_folder, 'Trajectory', '*.plt'))
-        labels_file = os.path.join(user_folder, 'labels.txt')
-        if os.path.exists(labels_file):
-            labels = pd.read_csv(labels_file, skiprows=1, header=None, parse_dates=[[0, 1], [2, 3]],
-                                 infer_datetime_format=True, delim_whitespace=True)
-            # for clarity rename columns
-            labels.columns = ['start_time', 'end_time', 'label']
-            # replace 'label' column with integer encoding
-            labels['label'] = [mode_ids[i] for i in labels['label']]
-        else:
-            labels = None
-
-        for f in plt_files:
-            # each file from each user can be mapped to multiple trajectories based on the corresponding vehicle
-            # label df_points
-            df_points = pd.read_csv(f, skiprows=6, header=None, parse_dates=[[5, 6]], infer_datetime_format=True)
-            # for clarity rename columns
-            df_points.rename(inplace=True, columns={'5_6': 'time', 0: 'lat', 1: 'lon', 3: 'alt'})
-            # remove unused columns
-            df_points.drop(inplace=True, columns=[2, 4])
-            if labels is not None:
-                indices = labels['start_time'].searchsorted(df_points['time'], side='right') - 1
-                no_label = (indices < 0) | (df_points['time'].values > labels['end_time'].iloc[indices].values)
-                df_points['label'] = labels['label'].iloc[indices].values
-                df_points['label'][no_label] = 0
-            else:
-                df_points['label'] = 0
-            # df_traj
-            index_subtraj = rle_segment(df_points['label'])
-
-            for id, index in enumerate(index_subtraj):
-                df_subtraj = df_points.loc[index, :].reset_index(drop=True)
-                df_subtraj["timestamps"] = df_subtraj.apply(lambda x: str2ts(f"{x.time}", "%Y-%m-%d %H:%M:%S"), axis=1)
-                obj_ID = f.split('/')[-3]
-                ts_list = df_subtraj['timestamps'].tolist()
-                point_list = [[df_subtraj.loc[i, "lon"], df_subtraj.loc[i, "lat"]] for i in range(df_subtraj.shape[0])]
-                traj_ID_list.append(f"{obj_ID}_{id}")
-                obj_ID_list.append(obj_ID)
-                timestamp_list.append(ts_list)
-                location_list.append(point_list)
-                missing_data_list.append("False")
-                if df_subtraj.loc[0, 'label'] == 0:
-                    type_list.append('Unknown')
-                else:
-                    type_list.append(mode_names[df_subtraj.loc[0, 'label']-1])
-
-    dataset_dict = {"Traj_ID": traj_ID_list,
-                    "Obj_ID": obj_ID_list,
-                    "Timestamps": timestamp_list,
-                    "Locations": location_list,
-                    "Type": type_list,
-                    "Missing_Data": missing_data_list}
-    df = pd.DataFrame.from_dict(dataset_dict)
-    df = df[df["Type"]!="Unknown"]
-    print(df.shape)
-    df.to_csv(f"../data/geolife-labeled/geolife-labeled_unify.csv", index=False)
-
-
-def tdrive_unify(path="../data/tdrive/taxi_log_2008_by_id"):
-    """
-    T-Drive is originally stored in a folder, each .txt file in this folder stores a trajectory of one object,
-    1. There is no type records or missing_data records.
-    :return:
-    """
-    dir = path
-    obj_ID_list = []
-    traj_ID_list = []
-    timestamp_list = []
-    location_list = []
-    type_list = []
-    missing_data_list = []
-    for path in os.listdir(dir):
-        if path.endswith(".txt"):
-            obj_ID = path.split(".")[0]
-            full_path = os.path.join(dir, path)
-            lines = open(full_path, "r").readlines()
-            if len(lines) == 0:
-                continue
-            ts_list = []
-            point_list = []
-            for i in range(len(lines)):
-                line = lines[i].removesuffix("\n").split(",")
-                ts = str2ts(f"{line[1]}", "%Y-%m-%d %H:%M:%S")
-                point = [json.loads(line[-2]), json.loads(line[-1])]
-                ts_list.append(ts)
-                point_list.append(point)
-            traj_ID_list.append(obj_ID)  # Each file represents one trajectory, thus traj_ID = obj_ID
-            obj_ID_list.append(obj_ID)
-            timestamp_list.append(ts_list)
-            location_list.append(point_list)
-            missing_data_list.append("False")
-            type_list.append("Unknown")
-
-    dataset_dict = {"Traj_ID": traj_ID_list,
-                    "Obj_ID": obj_ID_list,
-                    "Timestamps": timestamp_list,
-                    "Locations": location_list,
-                    "Type": type_list,
-                    "Missing_Data": missing_data_list}
-    df = pd.DataFrame.from_dict(dataset_dict)
-    print(df.shape)
-    df.to_csv(f"../data/tdrive/tdrive_unify.csv", index=False)
-
+    
 
 def ais_unify(df, column_date, column_lon, column_lat, column_type, ts_format):
     result_df = pd.DataFrame.from_dict({"Traj_ID": [],
@@ -271,17 +151,6 @@ def ais_unify(df, column_date, column_lon, column_lat, column_type, ts_format):
         missing_data = False
         type = grouped_df.loc[0][column_type]
         result_df.loc[len(result_df.index)] = [obj_ID, obj_ID, timestamps, locations, type, missing_data]
-    return result_df
-
-
-def aisdk_unify(path):
-    result_df = ais_unify(df=pd.read_csv(path),
-                          column_date="# Timestamp",
-                          column_lon="Longitude",
-                          column_lat="Latitude",
-                          column_type="Ship type",
-                          ts_format="%d/%m/%Y %H:%M:%S")
-    result_df.to_csv(f"{path.split('.csv')[-2]}_unify.csv", index=False)
     return result_df
 
 
