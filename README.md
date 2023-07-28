@@ -18,18 +18,18 @@ This repository contains the code used in paper "Clear: Ranked Multi-Positive Co
    Then you'll get a series of .h5 file named such as "porot_distort_rate_0.2_seq.h5" in "../data/porto/token/cell-100_minfreq-50". Again, feel free to use multiprocessing.
 
 # Training
-You can train CLEAR with the following settings. To reproduce the results of the other variants mentioned in our paper, you can modify the parameters such as combination, loss, batch_size, cell_size and minfreq to corresponding values.
+You can train CLEAR with the following settings.   
 ```python main.py -dataset_name "porto" -combination "single" -loss "pos-rank-out-all" -batch_size 64 -spatial_type "grid" -cell_size 100 -minfreq 50 -aug1_name "distort" -aug1_rate 0.4 -aug2_name "downsampling" -aug2_rate 0.4```  
-The trained model will be saved in "{}_checkpoint.pt" and "{}_best.pt". To facilicate the ablation study, they'll be named such as "clear-S_grid_cell-100_minfreq-50_multi-single-downsampling-distort-246_pos-rank-out-all_batch-64_porto_checkpoint.pt"
+The trained model will be saved in "{}_checkpoint.pt" and "{}_best.pt". To facilicate the ablation study, they'll be named such as "clear-S_grid_cell-100_minfreq-50_multi-single-downsampling-distort-246_pos-rank-out-all_batch-64_porto_checkpoint.pt". To reproduce the results of the other variants mentioned in our paper, you can modify the parameters such as combination, loss, batch_size, cell_size and minfreq to corresponding values.  
 
 # Evaluation
-We support three types of evaluation metrics, i.e., "self-similarity", "cross-similarity" and "knn". Taking "self-similarity" as an example, you can follow the next steps to reproduce the results,
-1. Prepare experimental dataset. 
-   ```python experiment.py -mode data -dataset_name "porto" -exp_list "self-similarity" -spatial_type "grid" -cell_size 100 -minfreq 50```
-   Then you'll get the experimental dataset in "../experiment/self-similarity/porto/cell-100-minfreq-50"  
-2. Encode and evaluate.
-   ```python experiment.py -mode data -dataset_name "porto" -exp_list "self-similarity" -spatial_type "grid" -cell_size 100 -minfreq 50```
-   Then you'll get the experimental results (.csv file) in "../experiment/"
+We support three types of evaluation metrics, i.e., "self-similarity", "cross-similarity" and "knn". Taking "self-similarity" as an example, you can follow the next steps to reproduce the results.  
+1. Prepare experimental dataset.  
+   ```python experiment.py -mode data -dataset_name "porto" -exp_list "self-similarity" -spatial_type "grid" -cell_size 100 -minfreq 50```  
+   Then you'll get the experimental dataset in "../experiment/self-similarity/porto/cell-100-minfreq-50".  
+2. Encode and evaluate.  
+   ```python experiment.py -mode data -dataset_name "porto" -exp_list "self-similarity" -spatial_type "grid" -cell_size 100 -minfreq 50```  
+   Then you'll get the experimental results (.csv file) in "../experiment/".
 
    
  
