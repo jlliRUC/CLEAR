@@ -6,4 +6,7 @@ This repository contains the code used in paper "Clear: Ranked Multi-Positive Co
 
  ## Preprocessing
  We mainly follow [t2vec](https://github.com/boathit/t2vec#readme) to preprocess the datasets but reproduce all Julia scripts in Python.
+ Our preprocessing includes several steps:
+ 1. Unify the datasets in diffrent formats:
+ 2. 
  
