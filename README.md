@@ -1,9 +1,9 @@
 This repository contains the code used in paper "Clear: Ranked Multi-Positive Contrastive Representation Learning for Robust Trajectory Similarity Computation"
 ## Requirements
-- ! (Ubuntu OS)
-- ! (Python >= 3.8)
-- ! (\item PyTorch 1.13.0)
+- Ubuntu OS
+- Python >= 3.8
+- PyTorch 1.13.0 (tested)
 
  ## Preprocessing
- 
+ We mainly follow [t2vec](https://github.com/boathit/t2vec#readme) to preprocess the datasets but reproduce all Julia scripts in Python.
  
