@@ -1,7 +1,7 @@
 This repository contains the code used in paper "CLEAR: Ranked Multi-Positive Contrastive Representation Learning for Robust Trajectory Similarity Computation"
 # Requirements
 - Ubuntu OS
-- Python = 3.9.13 (tested)
+- Python 3.9.13 (tested)
 - PyTorch 1.13.0 (tested)
 
  # Preprocessing
