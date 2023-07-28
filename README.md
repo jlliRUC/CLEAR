@@ -13,8 +13,8 @@ This repository contains the code used in paper "Clear: Ranked Multi-Positive Co
  2. Data augmentation.  
     ```python run_augmentation.py -dataset_name "porto"```  
     Then you'll get a series of .h5 file named such as "porto_distort_rate_0.2.h5" in "../data/porto/augmentation". Feel free to use multiprocessing :-)
-3. Token generation.
-   ```python run_token.py -dataset_name "porto" -cell_size 100 -minfreq 50```
+3. Token generation.  
+   ```python run_token.py -dataset_name "porto" -cell_size 100 -minfreq 50```  
    Then you'll get a series of .h5 file named such as "porot_distort_rate_0.2_seq.h5" in "../data/porto/token/cell-100_minfreq-50". Again, feel free to use multiprocessing.
 
 # Training
