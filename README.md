@@ -8,10 +8,10 @@ This repository contains the code used in paper "Clear: Ranked Multi-Positive Co
  We mainly follow [t2vec](https://github.com/boathit/t2vec#readme) to preprocess the datasets but reproduce all Julia scripts in Python.
  We suppport three trajectory datasets of different moving objects. They're "[porto](https://www.kaggle.com/c/pkdd-15-predict-taxi-service-trajectory-i)", "[geolife](https://www.microsoft.com/en-us/research/publication/geolife-gps-trajectory-dataset-user-guide/)" and "[aisus](https://marinecadastre.gov/ais/)". Taking "porto" as example, our preprocessing includes several steps:
  1. Unify the datasets in diffrent formats:  
-    ```python run_unify.py -dataset_name "porto"```
+    ```python run_unify.py -dataset_name "porto"```  
     Then you'll get a .csv file called "porto_filter.csv" and a .h5 file called "porto_filter.csv" in "../data/porto".  
  2. Data augmentation.  
-    ```python run_augmentation.py -dataset_name "porto"```
+    ```python run_augmentation.py -dataset_name "porto"```  
     Then you'll get a series of .h5 file named such as "porto_distort_rate_0.2.h5" in "../data/porto/augmentation". Feel free to use multiprocessing :-)
 3. Token generation.
    ```python run_token.py -dataset_name "porto" -cell_size 100 -minfreq 50```
