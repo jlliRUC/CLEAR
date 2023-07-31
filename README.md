@@ -37,7 +37,7 @@ We support three types of evaluation metrics, i.e., "self-similarity", "cross-si
 # Appendix
 ## Point distribution of datasets 
 <p align="center">
-<img src="appendix/Porto.png" weight=300, height=225><img src="appendix/GeoLife.png" weight=300, height=225><img src="appendix/AIS-US.png" weight=300, height=225>
+<img src="appendix/Porto.png" weight=240, height=180><img src="appendix/GeoLife.png" weight=240, height=180><img src="appendix/AIS-US.png" weight=240, height=180>
 </p>
 <p align="center">
   <strong><span style="font-size:larger;">Fig. 1:</span></strong> Point distribution of all datasets
