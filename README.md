@@ -35,58 +35,6 @@ We support three types of evaluation metrics, i.e., "self-similarity", "cross-si
    Then you'll get the experimental results (.csv file) in "experiment".
 
 We put the unified data file and our trained model of Porto in "[data](https://drive.google.com/drive/folders/1NQcEWW661PuMj3ytMPA-oAywBRgPsNHx?usp=drive_link)"
-# Appendix
-## Point distribution of datasets 
-<p align="center">
-<img src="appendix/Porto.png" weight=240, height=180><img src="appendix/GeoLife.png" weight=240, height=180><img src="appendix/AIS-US.png" weight=240, height=180>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 1:</span></strong> Point distribution of all datasets
-</p>
-
-
-## Results on AIS-US
-**AIS-US** is collected by the U.S. Coast Guard and contains daily trajectories of various vessels in the U.S. Here we adopt a subset from 4th April, 2022 to 10th April, 2022. To separate the original records with stop points and missing points in AIS-US, we set $I_{stop}$ to 1,800 s and $I_{miss}$ to 1,800 s. We summarize some statistics of the processed dataset next.
-
-<p align="center">
-  <img src="appendix/Statistic_AIS-US.png" weight=400, height=50>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 2:</span></strong> Statistics of AIS-US
-</p>
-
-Then we show the results of self-similarity, cross-similarity and kNN search on AISUS. Unsurprisingly, CLEAR still performs well on self-similarity and kNN search. However, it cannot beat t2vec on cross-similarity. We also notice that t2vec wins many runner-ups in kNN search. We argue that this is due to the sparse distribution of AIS-US compared with the other datasets, which rendering in simpler reconstructive task for generative models. 
-
-<p align="center">
-  <img src="appendix/ss_aisus_ori.png" alt="Effect of nk" weight=400, height=300>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 3:</span></strong> Effect of <span style="font-size:larger;">$n_k$</span> on self-similarity for AIS-US
-</p>
-<p align="center">
-  <img src="appendix/ss_aisus_aug_multi.png" weight=800, height=300>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 4:</span></strong> Effect of distortion and downsampling on self-similarity for AIS-US
-</p>
-<p align="center">
-  <img src="appendix/cs_aisus_multi.png" weight=800, height=300>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 5:</span></strong> Effect of distortion and downsampling on cross-similarity for AIS-US
-</p>
-<p align="center">
-  <img src="appendix/knn_distortion_aisus.png" weight=420, height=300>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 6:</span></strong> Effect of distortion on kNN search precision for AIS-US
-</p>
-<p align="center">
-  <img src="appendix/knn_downsampling_aisus.png" weight=420, height=300>
-</p>
-<p align="center">
-  <strong><span style="font-size:larger;">Fig. 7:</span></strong> Effect of downsamling on kNN search precision for AIS-US
-</p>
 
 
    
