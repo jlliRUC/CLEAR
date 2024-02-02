@@ -173,7 +173,7 @@ class GridPartition:
         :return:
         """
 
-        vocab_file = f"/home/jiali/clear/data/{self.dataset_name}/{self.dataset_name}_cell-{self.x_step}_minfreq-{self.minfreq}_grid_vocab.pkl"
+        vocab_file = f"./data/{self.dataset_name}/{self.dataset_name}_cell-{self.x_step}_minfreq-{self.minfreq}_grid_vocab.pkl"
 
         if not os.path.exists(vocab_file):
             start = time.time()
