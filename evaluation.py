@@ -1,22 +1,34 @@
 import torch
 from dataset import ExpDataLoader
 from train import get_model
+from baseline.t2vec import EncoderDecoder, DataOrderScaner
 import os
-import h5py
+import pickle
 import sys
+
 sys.path.append("..")
 
 
 def clear(args, source_file, vec_file):
-    # read source sequences from {}_seq.h5 and write the tensor into vec_{}.h5
+    "read source sequences from {}_seq.h5 and write the tensor into vec_{}.h5"
     # Load Model
-    model = get_model(vocab_size=args.vocab_size,
+    if args.pretrain_mode == "np":
+        print("Train without pretraining")
+        pretrain_file = None
+    else:
+        pretrain_file = f"data/{args.dataset_name}/{args.dataset_name}_size-{args.hidden_size}_cellsize-{args.cell_size}_minfreq-{args.minfreq}_node2vec.pkl"
+
+    model = get_model(model_name=args.model_name,
+                      vocab_size=args.vocab_size,
                       embed_size=args.embed_size,
                       hidden_size=args.hidden_size,
                       dropout=args.dropout,
+                      num_heads=args.num_heads,
                       num_layers=args.num_layers,
                       bidirectional=args.bidirectional,
-                      model_name=args.model_name)
+                      pretrain_mode=args.pretrain_mode,
+                      pretrain_file=pretrain_file
+                      )
     if os.path.isfile(args.checkpoint):
         print("=> loading checkpoint '{}'".format(args.checkpoint))
         checkpoint = torch.load(args.checkpoint)
@@ -43,17 +55,18 @@ def clear(args, source_file, vec_file):
         if torch.cuda.is_available():
             s = s.cuda()
             h, _ = model(s, lengths)  # (batch, hidden_size)
-            vecs.append(h.cpu().data)
+            vecs.append(h)
 
-    vecs = torch.cat(vecs).contiguous()  # (num_seqs, hidden_size)
+    vecs = torch.cat(vecs).contiguous()  # # (num_seqs, hidden_size)
     path = vec_file
     print("=> saving vectors into {}".format(path))
-    with h5py.File(path, "w") as f:
-        f['vec'] = vecs.numpy()
+    with open(path, "wb") as f:
+        result = {}
+        result["vec"] = vecs
+        pickle.dump(result, f)
 
 
 def model_generator(model_name):
     if model_name.startswith("clear"):
         return clear
-
 
