@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import constants
-import h5py
+import pickle
 import random
 
 random.seed(2023)
@@ -41,12 +41,10 @@ class ExpDataLoader:
         self.start = 0
 
     def load(self):
-        f = h5py.File(self.data_path, "r")
-        num = f.attrs["num"]
-        self.size = num
-        for i in range(0, num):
-            self.s.append(f[f"/Locations/{i}"][:])
-        self.s = np.array(self.s)
+        with open(self.data_path, "rb") as f:
+            trajs = pickle.load(f)
+        self.s = trajs
+        self.size = len(self.s)
         self.start = 0
 
     def get_one_batch(self):
@@ -60,7 +58,7 @@ class ExpDataLoader:
 
 
 class ClearDataLoader:
-    def __init__(self, dataset_name, num_train, num_val, transformer_list, istrain, batch_size, spatial_type='grid', cell_size=100, minfreq=50, density=4, shuffle=True):
+    def __init__(self, dataset_name, num_train, num_val, transformer_list, istrain, batch_size, partition_method, cell_size, minfreq, shuffle=True):
 
         self.dataset_name = dataset_name
         self.num_train = num_train
@@ -68,10 +66,9 @@ class ClearDataLoader:
         self.transformer_list = transformer_list
         self.istrain = istrain
         self.batch_size = batch_size
-        self.spatial_type = spatial_type
+        self.partition_method = partition_method
         self.cell_size = cell_size
         self.minfreq = minfreq
-        self.density = density
         self.shuffle = shuffle
 
     def load(self):
@@ -79,37 +76,17 @@ class ClearDataLoader:
         index_list = [i for i in range(0, self.num_train)] if self.istrain else [i for i in range(self.num_train,
                                                                                                   self.num_train + self.num_val)]
         self.s_list = []
+        self.c_list = []
         # S info
         for transformer in self.transformer_list:
-            if len(transformer["name"].split("_")) == 3:  # interpolation + mix:
-                _, name1, name2 = transformer["name"].split("_")
-                rate1, rate2 = transformer["parameters"]["rate"].split("_")
-                suffix = f"interpolation_{name1}_rate_{rate1}_{name2}_rate_{rate2}"
-            elif '_' in transformer["name"]:  # mix
-                if "interpolation" in transformer["name"]:
-                    name1, name2 = transformer["name"].split("_")
-                    rate2 = transformer["parameters"]["rate"]
-                    suffix = f"{name1}_{name2}_rate_{rate2}"
-                else:
-                    name1, name2 = transformer["name"].split("_")
-                    rate1, rate2 = transformer["parameters"]["rate"].split("_")
-                    suffix = f"{name1}_rate_{rate1}_{name2}_rate_{rate2}"
-            else:  # single
-                suffix = transformer["name"] + '_'
-                for key in transformer["parameters"]:
-                    if not key == "radius_ts":  # not distort
-                        suffix += (key + "_") + (str(transformer["parameters"][key]) + "_")
-                suffix = suffix.rstrip("_")
-            if self.spatial_type == "grid":
-                path = f"data/{self.dataset_name}/token/cell-{self.cell_size}_minfreq-{self.minfreq}/{self.dataset_name}_{suffix}_seq.h5"
-            elif self.spatial_type == "quadtree":
-                path = f"data/{self.dataset_name}/token/density-{self.density}_minfreq-{self.minfreq}/{self.dataset_name}_{suffix}_seq.h5"
+            suffix = f"{transformer['name']}_rate_{transformer['rate']}"
+            path = f"data/{self.dataset_name}/token/cellsize-{self.cell_size}_minfreq-{self.minfreq}/{self.dataset_name}_{suffix}_token.pkl"
             s = []
-            with h5py.File(path, "r") as f:
+            with open(path, "rb") as f:
+                df = pickle.load(f)
                 for index in index_list:
-                    s.append(f[f"/Locations/{index}"][:])
+                    s.append(df.loc[index, "token"][:])
                 self.s_list.append(np.array(s))
-
         self.num_s = len(self.s_list[0])
         self.start = 0
 
@@ -119,16 +96,13 @@ class ClearDataLoader:
         if self.shuffle:
             index = list(range(self.num_s))
             random.shuffle(index)
-            # batch_index = random.sample(index, self.batch_size)
             self.s_list = [s[index] for s in self.s_list]
             self.shuffle = False  # Just shuffle once
 
         sub_s_list = [pad_arrays(s[self.start:self.start + self.batch_size]) for s in self.s_list]
-        lengths_list = [torch.LongTensor(list(map(len, sub_s))) for sub_s in sub_s_list]
+        lengths_list = [torch.LongTensor(list(map(len, s[self.start:self.start + self.batch_size]))) for s in self.s_list]
 
         self.start += self.batch_size
 
         return sub_s_list, lengths_list
-
-
 
