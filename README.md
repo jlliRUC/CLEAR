@@ -34,7 +34,7 @@ We support three types of evaluation metrics, i.e., "self-similarity", "cross-si
    ```python experiment.py -mode encode -dataset_name "porto" -exp_list "self-similarity" -spatial_type "grid" -cell_size 100 -minfreq 50 -combination "single" -loss "pos-rank-out-all" -batch_size 64 -aug1_name "distort" -aug1_rate 0.4 -aug2_name "downsampling" -aug2_rate 0.4 -model_name "clear-DualRNN" -pretrain_mode "pf" -pretrain_method "node2vec"```
    Then you'll get the experimental results (.csv file) in "experiment".
 
-We put the unified data file and our trained model of Porto in "[data](https://drive.google.com/drive/folders/1NQcEWW661PuMj3ytMPA-oAywBRgPsNHx?usp=drive_link)"
+We put the unified data file and our trained model of Porto in "[data](https://drive.google.com/drive/folders/1WoLxTSLKfbSblL0tfTHBUQQb9mfhJ0BC?usp=sharing)"
 
 
    
