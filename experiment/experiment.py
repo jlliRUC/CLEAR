@@ -1,191 +1,123 @@
+import os.path
 import sys
 sys.path.append("..")
 import pandas as pd
 import argparse
 from experiment_utils import *
-from token_generation.STToken import region_grid
+import pickle
+import warnings
+warnings.filterwarnings("ignore")
+from preprocess.grid_partitioning import *
+from config import Config
+import argparse
+from train import train
 
 
-parser = argparse.ArgumentParser(description="experiment.py")
+def parse_args():
+    # Set some key configs from screen
 
-parser.add_argument("-model_name", default="clear-S", help="Name of model. Also the suffix of generated vec.h5")
+    parser = argparse.ArgumentParser(description="main.py")
 
-parser.add_argument("-batch_size", default=64, help="batch_size for encoding")
+    parser.add_argument("-dataset_name",  # ["porto", "geolife", "tdrive", "aisus"]
+                        help="Name of dataset")
 
-parser.add_argument("-file_suffix")
+    parser.add_argument("-partition_method",  # ["grid", "quadtree"]
+                        help="The way of space partitioning for spatial token_generation")
 
-parser.add_argument("-dataset_name", default="porto", help="Name of dataset")
+    parser.add_argument("-aug1_name", type=str)
 
-parser.add_argument("-mode", default="data", help="Preparing data or execute experiments")
+    parser.add_argument("-aug1_rate")
 
-parser.add_argument("-exp_list", nargs='+', default=["self-similarity", "cross-similarity", "knn"], help="Type of exp to be done")
+    parser.add_argument("-aug2_name", type=str)
 
-parser.add_argument("-num_query_ss", default=1000, help="Query number for self-similarity")
+    parser.add_argument("-aug2_rate")
 
-parser.add_argument("-num_key_ss", default=10000, help="Key number for self-similarity")
+    parser.add_argument("-combination", type=str,
+                        help="Different ways for combine pair or multiple augmentations")
 
-parser.add_argument("-num_pair", default=10000, help="Pair number for cross-similarity")
+    parser.add_argument("-model_name", type=str,
+                        help="The name of clear's variant")
 
-parser.add_argument("-num_set", default=10000, help="Set number for cluster")
+    parser.add_argument("-model_settings", type=str,
+                        help="suffix to mark special cases")
 
-parser.add_argument("-num_query_knn", default=1000, help="Query number of KNN")
+    parser.add_argument("-loss", type=str,
+                        help="Contrastive Loss Function")
 
-parser.add_argument("-num_key_knn", default=10000, help="Key number of KNN")
+    parser.add_argument("-pretrain_mode", type=str,
+                        help="np means no pretrain (by default), pf means pretrain-freeze, pt means pretrain-train")
 
-parser.add_argument("-key_sizes", nargs='+', default=[2000, 4000, 6000, 8000, 10000],
-                    help="key sizes for exp-self-similarity")
+    parser.add_argument("-pretrain_method", type=str,
+                        help="node2vec or word2vec")
 
-parser.add_argument("-data_path", default="../data", help="Path to save all data files.")
+    parser.add_argument("-batch_size", type=int,
+                        help="The batch size")
 
-parser.add_argument("-min_length", default=30, help="Minimum of points a trajectory has to consist")
+    parser.add_argument("-cell_size", type=int)
 
-parser.add_argument("-max_length", default=1000000, help="Maximum of points a trajectory has to consist")
+    parser.add_argument("-minfreq", type=int)
 
-parser.add_argument("-name_list", nargs='+', default=["original", "downsampling", "distort", "interpolation"],
-                    help="transformer names")
+    parser.add_argument("-exp_list", nargs='+')
 
-parser.add_argument("-rate_list", nargs='+', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], help="transformer parameters")
+    parser.add_argument("-exp_mode", help="Preparing data or execute experiments")
 
-parser.add_argument("-distance", default=lambda x, y: np.linalg.norm(x-y), help="Function for calculating pairwise-distance")
+    args = parser.parse_args()
 
-parser.add_argument("-max_k", default=50, help="Max k for exp-KNN")
+    params = {}
+    for param, value in args._get_kwargs():
+        if value is not None:
+            params[param] = value
 
-parser.add_argument("-k_list", nargs='+', default=[20, 30, 40, 50], help="k_list for exp-KNN")
-
-# Model-Encoder
-parser.add_argument("-num_layers", type=int, default=1,
-                    help="Number of layers in the RNN cell of encoder")
-
-parser.add_argument("-bidirectional", type=bool, default=True,
-                    help="True if use bidirectional rnn in encoder")
-
-parser.add_argument("-hidden_size", type=int, default=256,
-                    help="The hidden state size in the RNN cell of encoder")
-
-parser.add_argument("-embed_size", type=int, default=256,
-                    help="The word (cell) embedding size")
-
-parser.add_argument("-dropout", type=float, default=0.2,
-                    help="The dropout probability")
-
-parser.add_argument("-checkpoint", default='best.pt',
-                    help="The saved checkpoint")
-
-parser.add_argument("-spatial_type", default='grid',
-                    help="The way of space partitioning for spatial token")
-
-parser.add_argument("-cell_size", default=100,
-                    help="The cell size for grid partitioning")
-
-parser.add_argument("-minfreq", default=50,
-                    help="The min frequency for hot cell")
-
-parser.add_argument("-aug1_name", type=str, default='distort')
-
-parser.add_argument("-aug1_rate", default=0.4)
-
-parser.add_argument("-aug2_name", type=str, default="downsampling")
-
-parser.add_argument("-aug2_rate", default=0.4)
-
-parser.add_argument("-combination", type=str, default="single",
-                    help="suffix to mark special cases")
-
-parser.add_argument("-loss", type=str, default="pos-rank-out-all",
-                    help="suffix to mark special cases")
-
-parser.add_argument("-model_settings", type=str, default=None,
-                    help="suffix to mark special cases")
-
-parser.add_argument("-model_name", type=str, default='clear-S',
-                    help="suffix to mark special cases")
-
-
-def generate_suffix(spatial_type, cell_size, minfreq, combination, loss, batch_size, aug1_name, aug1_rate, aug2_name, aug2_rate):
-    suffix = ''
-    # partitioning
-    if spatial_type == "grid":
-        suffix += f"{spatial_type}_cell-{cell_size}_minfreq-{minfreq}_"
-
-    # combination
-    if combination == 'default':
-        suffix += f"default-{aug1_name}-rate-{aug1_rate}-{aug2_name}-rate-{aug2_rate}"
-    elif combination == 'single':
-        suffix += f"multi-single-downsampling-distort-246"
-    elif combination == 'mix':
-        suffix += f"multi-mix-downsampling-distort-246"
-
-    # loss function
-    suffix += f"_{loss}"
-
-    # batch_size
-    suffix += f"_batch-{batch_size}"
-
-    return suffix
+    return params
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    # Parameter initialization based on args.dataset_name
-    if args.dataset_name == "geolife":
-        args.start = 50000 + 10000
-        args.vocab_size = 37110
-    elif args.dataset_name == "aisus":
-        args.start = 100000 + 10000
-        args.vocab_size = 74911
-    elif args.dataset_name == "porto":
-        args.start = 1000000 + 10000
-        args.vocab_size = 23753
-        args.num_pair = 10000
-    else:
-        print("Unexpected dataset!")
+    configs = Config()
+    configs.default_update(parse_args())
+    region_settings = {"min_lon": configs.min_lon,
+                       "max_lon": configs.max_lon,
+                       "min_lat": configs.min_lat,
+                       "max_lat": configs.max_lat}
 
-    if args.model_name.startswith("clear"):
-        args.checkpoint = f"../data/{args.dataset_name}/{args.file_suffix}_best.pt"
-    else:
-        args.checkpoint = f"../baseline/{args.file_suffix}.pt"
+    if configs.partition_method == "grid":
+        region = region_grid(configs.dataset_name, configs.cell_size, configs.minfreq, region_settings)
 
-    if args.spatial_type == "grid":
-        region = region_grid(args.dataset_name, args.cell_size, args.minfreq)
     region.makeVocab()
 
-    for k, v in args._get_kwargs():
-        print("{0} =  {1}".format(k, v))
-
-    suffix = generate_suffix(args.spatial_type, args.cell_size, args.minfreq, args.combination, args.loss, args.batch_size, args.aug1_name, args.aug1_rate, args.aug2_name, args.aug2_rate)
-    if args.model_settings is not None:  # extra info/hyper-parameters
-        file_suffix = f"{args.model_name}_{suffix}_{args.model_settings}_{args.dataset_name}"
-    else:
-        file_suffix = f"{args.model_name}_{suffix}_{args.dataset_name}"
-
-    if args.mode == "data":
-        for exp_label in args.exp_list:
-            if args.spatial_type == "grid":
-                folder = f"{exp_label}/{args.dataset_name}/cell-{args.cell_size}_minfreq-{args.minfreq}"
-                if not os.path.exists(folder):
-                    os.makedirs(folder)
+    if configs.exp_mode == "data":
+        for exp_label in configs.exp_list:
+            if configs.partition_method == "grid":
+                folder = f"{exp_label}/{configs.dataset_name}/cellsize-{configs.cell_size}_minfreq-{configs.minfreq}"
+            if not os.path.exists(folder):
+                os.makedirs(folder)
             if exp_label == "self-similarity":
-                data_self_similarity(args, region)
+                data_self_similarity(configs, region)
             elif exp_label == "cross-similarity":
-                data_cross_similarity(args, region)
+                data_cross_similarity(configs, region)
             elif exp_label == "knn":
-                data_KNN(args, region)
-    elif args.mode == "encode":
-        multi_encode(args, args.exp_list)
-    elif args.mode == "exp":
-        for exp_label in args.exp_list:
+                data_KNN(configs, region)
+            elif exp_label == "cluster":
+                data_cluster(configs, region)
+    elif configs.exp_mode == "encode":
+        multi_encode(configs, configs.exp_list)
+    elif configs.exp_mode == "exp":
+        for exp_label in configs.exp_list:
             if exp_label == "self-similarity":
-                results = exp_self_similarity(args)
+                results = exp_self_similarity(configs)
                 df_ss = pd.DataFrame(results).T
-                df_ss.to_csv(f"{args.file_suffix}_{exp_label}.csv")
+                df_ss.to_csv(f"{configs.suffix}_{exp_label}.csv")
             elif exp_label == "cross-similarity":
-                results = exp_cross_similarity(args)
+                results = exp_cross_similarity(configs)
                 df_cs = pd.DataFrame(results)
-                df_cs.to_csv(f"{args.file_suffix}_{exp_label}.csv")
+                df_cs.to_csv(f"{configs.suffix}_{exp_label}.csv")
             elif exp_label == "knn":
-                results = exp_KNN(args)
+                results = exp_KNN(configs)
                 df_knn = pd.DataFrame(results).T
-                df_knn.to_csv(f"{args.file_suffix}_{exp_label}.csv")
+                df_knn.to_csv(f"{configs.suffix}_{exp_label}.csv")
+            elif exp_label == 'cluster':
+                results = exp_cluster(configs)
+                df_cluster = pd.DataFrame(results)
+                df_cluster.to_csv(f"{configs.suffix}_{exp_label}.csv")
 
 
 
