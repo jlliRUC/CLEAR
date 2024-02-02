@@ -114,10 +114,3 @@ if __name__ == "__main__":
                 results = exp_KNN(configs)
                 df_knn = pd.DataFrame(results).T
                 df_knn.to_csv(f"{configs.suffix}_{exp_label}.csv")
-            elif exp_label == 'cluster':
-                results = exp_cluster(configs)
-                df_cluster = pd.DataFrame(results)
-                df_cluster.to_csv(f"{configs.suffix}_{exp_label}.csv")
-
-
-
